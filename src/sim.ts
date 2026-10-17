@@ -25,6 +25,7 @@ function storyFor(
   events: StepEvent[],
   state: GameState,
   action: ActionId,
+  totalFeaturesBuilt: number,
 ): string {
   const types = new Set(R.map(events, (e) => e.type));
   const released = R.find(events, (e) => e.type === "released");
@@ -43,7 +44,7 @@ function storyFor(
   }
   if (action === "feature") {
     const bugNote = types.has("bug_introduced") ? " Slipped in a bug!" : "";
-    return `Built feature #${state.features}.${bugNote}`;
+    return `Built feature #${totalFeaturesBuilt}.${bugNote}`;
   }
   if (action === "tests") {
     const bugNote = types.has("bug_introduced")
@@ -76,18 +77,20 @@ export function runSimulation(rules: Rule[], seed: number = SIM_SEED): SimResult
     release: 0,
   };
   let totalRevenueCents = 0;
+  let totalFeaturesBuilt = 0;
 
   while (!game.done) {
     const { action, ruleIndex } = pickAction(rules, game, ctx);
     const { state: next, events } = step(game, action);
     totalRevenueCents += next.releasedValueCents;
+    if (events.some((e) => e.type === "feature_added")) totalFeaturesBuilt += 1;
     if (action === "release") ctx.featuresAtLastRelease = next.features;
     actionCounts[action] += 1;
     log.push({
       day: game.day,
       action,
       ruleNum: ruleIndex + 1,
-      story: storyFor(events, next, action),
+      story: storyFor(events, next, action, totalFeaturesBuilt),
       features: next.features,
       bugs: next.bugs,
       coveragePct: coveragePct(next),
