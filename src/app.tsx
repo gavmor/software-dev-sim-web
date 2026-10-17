@@ -8,7 +8,7 @@ import { RuleModal } from "./components/RuleModal";
 import { Scorecard } from "./components/Scorecard";
 import { Dashboard } from "./components/Dashboard";
 import { PRESETS, cloneRules, describeStopShort } from "./strategy";
-import { createRunner, runSimulation, type Runner } from "./sim";
+import { createRunner, runSimulation, presetBenchmarks, type Runner } from "./sim";
 import type {
   ActionId,
   PresetKey,
@@ -68,6 +68,14 @@ export function App() {
     // runId lets the button force a re-run
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [rules, days, stopRule, fogOfWar, runId],
+  );
+
+  // Grading benchmark: the four presets under identical conditions.
+  // Memoized — it only depends on the run configuration, not the rules.
+  const benchmarks = useMemo(
+    () => presetBenchmarks({ days, stopRule, fogOfWar }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [days, stopRule, fogOfWar],
   );
 
   // A new strategy or run configuration resets any live run.
@@ -239,6 +247,7 @@ export function App() {
             title={scoreTitle}
             subtitle={scoreSubtitle}
             fogOfWar={fogOfWar}
+            benchmarks={benchmarks}
           />
           <Dashboard
             result={result}

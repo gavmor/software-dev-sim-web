@@ -7,6 +7,7 @@ import {
   createKnowledge,
   updateKnowledge,
   playerView,
+  STARTING_CENTS,
   type ActionId,
   type GameState,
   type StepEvent,
@@ -17,6 +18,8 @@ import {
   stopRuleFires,
   describeStop,
   ACTION_META,
+  PRESETS,
+  cloneRules,
 } from "./strategy";
 import type {
   DayLogEntry,
@@ -226,19 +229,44 @@ export function fundsOverTime(rules: Rule[], opts: FundsOptions = {}): number[] 
   return funds;
 }
 
-/** Grade for the scorecard, based on final profit. */
-export function gradeFor(profitDollars: number): {
+/** Grade for the scorecard, relative to the preset field at the same horizon.
+ *
+ * Fixed dollar thresholds go meaningless at long horizons — past the early
+ * game every strategy turns profitable (at 1000 days even the worst preset
+ * clears +$600), so the grade compares against the four presets run under
+ * identical conditions instead: beat them all and you're a Master
+ * Strategist, land in the pack and it's a Solid Run, trail the pack and it
+ * Could Be Better. Failure exists again at every horizon.
+ */
+export interface PresetBenchmarks {
+  best: number;
+  worst: number;
+}
+
+/** Mean profit of each preset is overkill — one lab-seed run each is the benchmark. */
+export function presetBenchmarks(opts: FundsOptions = {}): PresetBenchmarks {
+  const profits = (Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((k) => {
+    const funds = fundsOverTime(cloneRules(PRESETS[k]), { seed: SIM_SEED, ...opts });
+    return funds[funds.length - 1] - STARTING_CENTS / 100;
+  });
+  return { best: Math.max(...profits), worst: Math.min(...profits) };
+}
+
+export function gradeFor(
+  profitDollars: number,
+  bench: PresetBenchmarks,
+): {
   label: string;
   className: string;
 } {
-  if (profitDollars >= 5) {
+  if (profitDollars >= bench.best) {
     return {
       label: "🌟 Master Strategist!",
       className:
         "px-2 py-0.5 rounded-lg text-xs font-black bg-emerald-950 text-emerald-300 border border-emerald-700",
     };
   }
-  if (profitDollars >= -15) {
+  if (profitDollars >= bench.worst) {
     return {
       label: "👍 Solid Run",
       className:

@@ -52,7 +52,9 @@ function buildRows(
   const rows: Row[] = [];
   const push = (key: string, group: string, funds: number[]) => {
     for (let d = 0; d < funds.length; d += stride) {
-      rows.push({ key, group, day: d + 1, funds: funds[d] });
+      // A bankrupt company contributes nothing to the stack — clamp at zero
+      // rather than drawing negative (absolute) height.
+      rows.push({ key, group, day: d + 1, funds: Math.max(0, funds[d]) });
     }
   };
   for (const g of GROUP_ORDER) {

@@ -1,5 +1,5 @@
 import { dollars } from "@gavmor/software-dev-sim";
-import { gradeFor } from "../sim";
+import { gradeFor, type PresetBenchmarks } from "../sim";
 import { coveragePct } from "../strategy";
 import type { SimResult } from "../types";
 import { SIM_SEED } from "../types";
@@ -9,6 +9,7 @@ interface Props {
   title: string;
   subtitle: string | null;
   fogOfWar: boolean;
+  benchmarks: PresetBenchmarks;
 }
 
 function MetricCard({
@@ -36,10 +37,10 @@ function MetricCard({
   );
 }
 
-export function Scorecard({ result, title, subtitle, fogOfWar }: Props) {
+export function Scorecard({ result, title, subtitle, fogOfWar, benchmarks }: Props) {
   const { finalState, totalRevenueCents, actionCounts, profitCents } = result;
   const profitDollars = profitCents / 100;
-  const grade = gradeFor(profitDollars);
+  const grade = gradeFor(profitDollars, benchmarks);
   const cov = coveragePct(finalState);
 
   const effort = (n: number) => `${n}d`;
