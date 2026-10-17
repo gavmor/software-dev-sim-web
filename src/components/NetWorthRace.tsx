@@ -99,21 +99,16 @@ export function NetWorthRace({ rules, days, fogOfWar, stopRule }: Props) {
   );
 
   const groups = [...GROUP_ORDER.map((g) => PRESET_LABELS[g]), MY_COMPANY_LABEL];
-  // My Company rides on top of the stack in every mode but wiggle
-  // (which needs inside-out ordering to minimize slope).
-  const order =
-    offset === "wiggle"
-      ? "inside-out"
-      : rows
-          .map((r) => r.key)
-          .filter((k, i, a) => a.indexOf(k) === i)
-          .sort(
-            (a, b) =>
-              groups.indexOf(a.replace(/ #\d+$/, "")) -
-              groups.indexOf(b.replace(/ #\d+$/, "")),
-          );
+  const groupOf = (key: string) => key.replace(/ #\d+$/, "");
+  // One contiguous band per strategy in every layout: the 12 instances of a
+  // preset stay adjacent even in wiggle (no inside-out scattering), and My
+  // Company rides on top of the stack.
+  const order = rows
+    .map((r) => r.key)
+    .filter((k, i, a) => a.indexOf(k) === i)
+    .sort((a, b) => groups.indexOf(groupOf(a)) - groups.indexOf(groupOf(b)));
   const colorOf = (key: string) => {
-    const group = key.replace(/ #\d+$/, "");
+    const group = groupOf(key);
     if (group === MY_COMPANY_LABEL) return MY_COMPANY_COLOR;
     const g = GROUP_ORDER.find((gk) => PRESET_LABELS[gk] === group);
     return g ? GROUP_COLORS[g] : "#64748b";
@@ -138,7 +133,16 @@ export function NetWorthRace({ rules, days, fogOfWar, stopRule }: Props) {
       y:
         offset === "normalize"
           ? { label: "Share of net worth →", tickFormat: "%", grid: true }
-          : { label: "Net worth ($) →", grid: true, tickFormat: (d) => `$${d}` },
+          : offset === "zero"
+            ? {
+                label: "Net worth ($) →",
+                grid: true,
+                tickFormat: (d: number) => `$${d}`,
+              }
+            : // Center and wiggle shift the baseline, so absolute y positions
+              // are meaningless — read each company's net worth from its
+              // band's height instead.
+              { label: "Net worth ($) · band height", ticks: [], grid: false },
       color: {
         domain: keys,
         range: keys.map(colorOf),
@@ -233,8 +237,9 @@ export function NetWorthRace({ rules, days, fogOfWar, stopRule }: Props) {
         {instances} paired runs per preset (instance <em>n</em> of every preset
         shares seed {RACE_SEED_BASE}+<em>n</em>) race your current rules (seed{" "}
         {SIM_SEED}) over {days} days — same fog setting as the main run. Each
-        layer is one company's net worth; the stack shows the field your
-        strategy is running against.
+        layer is one company's net worth and each strategy keeps one
+        contiguous band; in Center and Wiggle layouts vertical position is
+        arbitrary, so read net worth from band height.
       </p>
     </div>
   );
