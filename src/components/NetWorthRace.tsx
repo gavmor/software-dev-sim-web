@@ -118,6 +118,44 @@ export function NetWorthRace({ rules, days, fogOfWar, stopRule }: Props) {
     .filter((k, i, a) => a.indexOf(k) === i);
   const activeHint = OFFSETS.find((o) => o.id === offset)?.hint ?? "";
 
+  // Day -> rows, for the instant tooltip: with 49 overlapping series a
+  // per-layer tooltip can't reliably pick a series, so hovering shows the
+  // whole field's state at that day instead.
+  const dayIndex = useMemo(() => {
+    const m = new Map<number, Row[]>();
+    for (const r of rows) {
+      const arr = m.get(r.day);
+      if (arr) arr.push(r);
+      else m.set(r.day, [r]);
+    }
+    return m;
+  }, [rows]);
+
+  const tipTitle = (d: Row): string => {
+    const dayRows = dayIndex.get(d.day) ?? [];
+    const mean = (group: string): number => {
+      let sum = 0;
+      let n = 0;
+      for (const r of dayRows) {
+        if (r.group === group) {
+          sum += r.funds;
+          n += 1;
+        }
+      }
+      return n > 0 ? sum / n : 0;
+    };
+    const mine =
+      dayRows.find((r) => r.key === MY_COMPANY_LABEL)?.funds ?? 0;
+    return [
+      `Day ${d.day}`,
+      `★ ${MY_COMPANY_LABEL}: $${mine.toFixed(2)}`,
+      ...GROUP_ORDER.map(
+        (g) =>
+          `${PRESET_LABELS[g]} avg: $${mean(PRESET_LABELS[g]).toFixed(2)}`,
+      ),
+    ].join("\n");
+  };
+
   useEffect(() => {
     const host = hostRef.current;
     if (host === null) return;
@@ -157,8 +195,20 @@ export function NetWorthRace({ rules, days, fogOfWar, stopRule }: Props) {
           offset: offset === "zero" ? undefined : offset,
           order: order as never,
           curve: "monotone-x",
-          title: (d: Row) => `${d.key}\nDay ${d.day}: $${d.funds.toFixed(2)}`,
         }),
+        // Instant (0-delay) tooltip: native <title> tooltips carry an
+        // OS-level delay, so the hover readout is a Plot tip instead.
+        // Anchored by day only — with 49 stacked series the vertical
+        // position is read from band height, not the cursor.
+        Plot.tip(
+          rows,
+          Plot.pointerX({
+            x: "day",
+            title: tipTitle,
+            fill: "#0f172a",
+            stroke: "#334155",
+          }),
+        ),
         Plot.ruleY([0]),
       ],
     });
