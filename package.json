@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@gavmor/software-dev-sim": "^1.0.0",
+    "@gavmor/software-dev-sim": "^1.1.0",
     "@observablehq/plot": "^0.6.17",
     "preact": "^11.0.1",
     "remeda": "^2.52.0"

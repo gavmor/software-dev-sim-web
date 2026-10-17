@@ -4,6 +4,9 @@ import {
   step,
   profitCents,
   dollars,
+  createKnowledge,
+  updateKnowledge,
+  playerView,
   type ActionId,
   type GameState,
   type StepEvent,
@@ -94,9 +97,14 @@ export interface Runner {
 }
 
 export function createRunner(rules: Rule[], opts: RunOptions = {}): Runner {
-  const { seed = SIM_SEED, days = 100, stopRule = null, fogOfWar = false } = opts;
+  const { seed = SIM_SEED, days = 100, stopRule = null, fogOfWar = true } = opts;
   let game = createGame({ seed, days });
-  const ctx: SimContext = { featuresAtLastRelease: 0, knownBugs: 0, fogOfWar };
+  // The driver holds the full GameState (for step()) and the player's
+  // knowledge. The strategy below only ever receives the projected
+  // PlayerView — the live bug count never crosses that boundary.
+  let knowledge = createKnowledge();
+  const ctx: SimContext = { featuresAtLastRelease: 0 };
+  const xray = !fogOfWar;
   const log: DayLogEntry[] = [];
   const actionCounts: Record<ActionId, number> = {
     feature: 0,
@@ -110,17 +118,13 @@ export function createRunner(rules: Rule[], opts: RunOptions = {}): Runner {
 
   function stepDay(): DayLogEntry | null {
     if (game.done || stopReason !== null) return null;
-    const { action, ruleIndex } = pickAction(rules, game, ctx);
+    const view = playerView(game, knowledge, { xray });
+    const { action, ruleIndex } = pickAction(rules, view, ctx);
     const { state: next, events } = step(game, action);
     totalRevenueCents += next.releasedValueCents;
     if (events.some((e) => e.type === "feature_added")) totalFeaturesBuilt += 1;
-    if (action === "release") {
-      ctx.featuresAtLastRelease = next.features;
-      // A release is the only moment the strategy learns the bug count.
-      const reported = events.find((e) => e.type === "bugs_reported");
-      ctx.knownBugs =
-        reported !== undefined && reported.type === "bugs_reported" ? reported.count : 0;
-    }
+    knowledge = updateKnowledge(knowledge, events);
+    if (action === "release") ctx.featuresAtLastRelease = next.features;
     actionCounts[action] += 1;
     const entry: DayLogEntry = {
       day: game.day,
@@ -134,7 +138,7 @@ export function createRunner(rules: Rule[], opts: RunOptions = {}): Runner {
     };
     log.push(entry);
     game = next;
-    if (stopRule !== null && stopRuleFires(stopRule, game, ctx)) {
+    if (stopRule !== null && stopRuleFires(stopRule, playerView(game, knowledge, { xray }), ctx)) {
       stopReason = describeStop(stopRule, game.day);
     }
     return entry;

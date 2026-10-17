@@ -33,6 +33,17 @@ pnpm build    # tsc --noEmit && vite build
 pnpm preview  # serve the production build locally
 ```
 
+## Fog of war
+
+Like the original game, bug counts and test quality are hidden until
+release (toggle in the run bar, on by default). The invariant is enforced
+by interface segregation, not convention: strategies observe the game
+exclusively through the engine's `playerView()`, whose `bugs` field is the
+last *reported* count — the strategy module (`src/strategy.ts`) never
+imports `GameState`, so the live count is unrepresentable there. The sim
+driver (`src/sim.ts`) holds the full state and projects the view each day;
+`{ xray: true }` is the explicit lab override.
+
 ## Deploying
 
 Pushing to `main` runs the *Deploy to GitHub Pages* workflow: install (via

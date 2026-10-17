@@ -1,5 +1,5 @@
 import * as R from "remeda";
-import { profitCents, type GameState } from "@gavmor/software-dev-sim";
+import { profitCents, type PlayerView } from "@gavmor/software-dev-sim";
 import type {
   ActionId,
   Operator,
@@ -69,32 +69,34 @@ export const ACTION_META: Record<ActionId, ActionMeta> = {
   },
 };
 
-/** Test coverage as a 0–100 percent number derived from engine state. */
-export function coveragePct(state: GameState): number {
-  const size = state.features + state.cruft;
-  if (size === 0) return state.unitTests > 0 ? 100 : 0;
-  return Math.min(100, Math.round((state.unitTests / (size * 4)) * 100));
+/** Test coverage as a 0–100 percent number derived from the player-visible state. */
+export function coveragePct(view: PlayerView): number {
+  const size = view.features + view.cruft;
+  if (size === 0) return view.unitTests > 0 ? 100 : 0;
+  return Math.min(100, Math.round((view.unitTests / (size * 4)) * 100));
 }
 
 export function readSensor(
   sensor: SensorId,
-  state: GameState,
+  view: PlayerView,
   ctx: SimContext,
 ): number {
   switch (sensor) {
     case "net_new_features":
-      return Math.max(0, state.features - ctx.featuresAtLastRelease);
+      return Math.max(0, view.features - ctx.featuresAtLastRelease);
     case "bugs":
-      // Under fog of war the strategy only knows what the last release reported.
-      return ctx.fogOfWar ? ctx.knownBugs : state.bugs;
+      // The fog-of-war invariant is enforced by the type boundary:
+      // strategies receive a PlayerView, whose `bugs` is the last
+      // reported count. There is no live value to read here.
+      return view.bugs;
     case "coverage":
-      return coveragePct(state);
+      return coveragePct(view);
     case "day":
-      return state.day;
+      return view.day;
     case "cruft":
-      return state.cruft;
+      return view.cruft;
     case "profit":
-      return profitCents(state) / 100;
+      return profitCents(view) / 100;
   }
 }
 
@@ -115,7 +117,7 @@ function compare(op: Operator, actual: number, expected: number): boolean {
 
 export function ruleFires(
   rule: Rule,
-  state: GameState,
+  view: PlayerView,
   ctx: SimContext,
 ): boolean {
   if (rule.isDefault) return true;
@@ -124,7 +126,7 @@ export function ruleFires(
   }
   return compare(
     rule.operator,
-    readSensor(rule.sensor, state, ctx),
+    readSensor(rule.sensor, view, ctx),
     rule.value,
   );
 }
@@ -135,10 +137,10 @@ export function ruleFires(
  */
 export function pickAction(
   rules: Rule[],
-  state: GameState,
+  view: PlayerView,
   ctx: SimContext,
 ): { action: ActionId; ruleIndex: number } {
-  const ruleIndex = R.findIndex(rules, (r) => ruleFires(r, state, ctx));
+  const ruleIndex = R.findIndex(rules, (r) => ruleFires(r, view, ctx));
   if (ruleIndex === -1) return { action: "feature", ruleIndex: -1 };
   return { action: rules[ruleIndex].action, ruleIndex };
 }
@@ -154,10 +156,10 @@ export function describeRule(rule: Rule, index: number): string {
 /** Does the stop condition hold right now? */
 export function stopRuleFires(
   rule: StopRule,
-  state: GameState,
+  view: PlayerView,
   ctx: SimContext,
 ): boolean {
-  return compare(rule.operator, readSensor(rule.sensor, state, ctx), rule.value);
+  return compare(rule.operator, readSensor(rule.sensor, view, ctx), rule.value);
 }
 
 export function describeStop(rule: StopRule, day: number): string {

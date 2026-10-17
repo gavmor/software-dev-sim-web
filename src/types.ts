@@ -22,12 +22,11 @@ export interface Rule {
   desc: string;
 }
 
-/** Per-run memory for stateful sensors — i.e. what the strategy is allowed to know. */
+/** Per-run strategy memory — what the rule engine remembers between days.
+ *  Player knowledge (e.g. the last reported bug count) lives in the
+ *  engine's PlayerKnowledge and reaches strategies only via PlayerView. */
 export interface SimContext {
   featuresAtLastRelease: number;
-  /** Bug count as last reported at a release; stale between releases under fog. */
-  knownBugs: number;
-  fogOfWar: boolean;
 }
 
 export interface DayLogEntry {
