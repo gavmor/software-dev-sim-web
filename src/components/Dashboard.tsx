@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import { ACTION_META, SENSOR_META } from "../strategy";
 import { recentLogFirst } from "../sim";
+import { EffortStream } from "./EffortStream";
 import type { Rule, SimResult } from "../types";
 
 interface Props {
@@ -8,7 +9,7 @@ interface Props {
   rules: Rule[];
 }
 
-type Tab = "log" | "summary";
+type Tab = "log" | "summary" | "stream";
 
 const TIPS = [
   "Releasing features earns points, but bugs reduce earnings.",
@@ -38,9 +39,12 @@ export function Dashboard({ result, rules }: Props) {
       <div class="flex border-b border-slate-800 text-xs font-bold bg-slate-900/60 px-4">
         {tabBtn("log", "📖 Day-by-Day Story")}
         {tabBtn("summary", "🔍 How the Engine Sees This")}
+        {tabBtn("stream", "📊 Effort Stream")}
       </div>
 
-      {tab === "log" ? (
+      {tab === "stream" ? (
+        <EffortStream log={result.log} />
+      ) : tab === "log" ? (
         <div class="flex-1 p-4 overflow-y-auto">
           <div class="space-y-2">
             {recentLogFirst(result.log).map((item) => {
