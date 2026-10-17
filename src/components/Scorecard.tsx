@@ -8,6 +8,7 @@ interface Props {
   result: SimResult;
   title: string;
   subtitle: string | null;
+  fogOfWar: boolean;
 }
 
 function MetricCard({
@@ -35,7 +36,7 @@ function MetricCard({
   );
 }
 
-export function Scorecard({ result, title, subtitle }: Props) {
+export function Scorecard({ result, title, subtitle, fogOfWar }: Props) {
   const { finalState, totalRevenueCents, actionCounts, profitCents } = result;
   const profitDollars = profitCents / 100;
   const grade = gradeFor(profitDollars);
@@ -76,16 +77,16 @@ export function Scorecard({ result, title, subtitle }: Props) {
         <MetricCard
           label="Tests Built"
           icon="🛡️"
-          value={`${cov}%`}
+          value={fogOfWar ? `${finalState.unitTests}` : `${cov}%`}
           color="text-purple-400"
-          sub="shield against bugs"
+          sub={fogOfWar ? "unit tests written" : "shield against bugs"}
         />
         <MetricCard
           label="Bug Count"
           icon="🐛"
-          value={`${finalState.bugs}`}
+          value={fogOfWar ? "?" : `${finalState.bugs}`}
           color="text-rose-400"
-          sub="active issues"
+          sub={fogOfWar ? "revealed at release" : "active issues"}
         />
       </div>
 

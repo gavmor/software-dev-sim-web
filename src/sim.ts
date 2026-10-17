@@ -29,6 +29,7 @@ function storyFor(
   state: GameState,
   action: ActionId,
   totalFeaturesBuilt: number,
+  fogOfWar: boolean,
 ): string {
   const types = new Set(R.map(events, (e) => e.type));
   const released = R.find(events, (e) => e.type === "released");
@@ -38,6 +39,7 @@ function storyFor(
     return "Got stuck on crufty code — no feature today.";
   }
   if (released) {
+    // The reveal moment: this is when you learn about your bugs.
     const n = released.type === "released" ? released.features : 0;
     const bugNote =
       bugsReported && bugsReported.type === "bugs_reported"
@@ -46,19 +48,23 @@ function storyFor(
     return `🎉 RELEASED ${n} feature${n === 1 ? "" : "s"}! +$${dollars(state.releasedValueCents * 20)}/mo contracts${bugNote}`;
   }
   if (action === "feature") {
-    const bugNote = types.has("bug_introduced") ? " Slipped in a bug!" : "";
+    // Under fog of war, bug slips are silent — you won't know until release.
+    const bugNote =
+      !fogOfWar && types.has("bug_introduced") ? " Slipped in a bug!" : "";
     return `Built feature #${totalFeaturesBuilt}.${bugNote}`;
   }
   if (action === "tests") {
+    if (fogOfWar) return "Wrote tests.";
     const bugNote = types.has("bug_introduced")
       ? " (and introduced a bug — ouch)"
       : "";
     return `Wrote tests. Coverage now ${coveragePct(state)}%.${bugNote}`;
   }
   if (action === "refactor") {
-    const bugNote = types.has("bug_introduced")
-      ? " Slipped in a bug while tidying!"
-      : "";
+    const bugNote =
+      !fogOfWar && types.has("bug_introduced")
+        ? " Slipped in a bug while tidying!"
+        : "";
     return `Refactored messy code to stay nimble.${bugNote}`;
   }
   return ACTION_META[action].label;
@@ -68,6 +74,8 @@ export interface RunOptions {
   seed?: number;
   days?: number;
   stopRule?: StopRule | null;
+  /** Hide bugs and test quality until release, like the original game. */
+  fogOfWar?: boolean;
 }
 
 /**
@@ -86,7 +94,7 @@ export interface Runner {
 }
 
 export function createRunner(rules: Rule[], opts: RunOptions = {}): Runner {
-  const { seed = SIM_SEED, days = 100, stopRule = null } = opts;
+  const { seed = SIM_SEED, days = 100, stopRule = null, fogOfWar = false } = opts;
   let game = createGame({ seed, days });
   const ctx: SimContext = { featuresAtLastRelease: 0 };
   const log: DayLogEntry[] = [];
@@ -112,7 +120,7 @@ export function createRunner(rules: Rule[], opts: RunOptions = {}): Runner {
       day: game.day,
       action,
       ruleNum: ruleIndex + 1,
-      story: storyFor(events, next, action, totalFeaturesBuilt),
+      story: storyFor(events, next, action, totalFeaturesBuilt, fogOfWar),
       features: next.features,
       bugs: next.bugs,
       coveragePct: coveragePct(next),

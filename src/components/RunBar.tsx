@@ -18,6 +18,7 @@ interface Props {
   stopRule: StopRule | null;
   speed: number;
   speeds: number[];
+  fogOfWar: boolean;
   primaryLabel: string;
   liveRunning: boolean;
   status: string;
@@ -25,6 +26,7 @@ interface Props {
   onDaysChange: (n: number) => void;
   onStopRuleChange: (r: StopRule | null) => void;
   onSpeedChange: (n: number) => void;
+  onFogOfWarChange: (v: boolean) => void;
   onPrimary: () => void;
 }
 
@@ -46,6 +48,7 @@ export function RunBar(props: Props) {
     stopRule,
     speed,
     speeds,
+    fogOfWar,
     primaryLabel,
     liveRunning,
     status,
@@ -53,6 +56,7 @@ export function RunBar(props: Props) {
     onDaysChange,
     onStopRuleChange,
     onSpeedChange,
+    onFogOfWarChange,
     onPrimary,
   } = props;
 
@@ -75,6 +79,18 @@ export function RunBar(props: Props) {
         {modeBtn("instant", "⚡ Instant")}
         {modeBtn("live", "▶ Live")}
       </div>
+
+      <button
+        onClick={() => onFogOfWarChange(!fogOfWar)}
+        title="Fog of war: hide bug counts and test quality until release, like the original game"
+        class={`px-3 py-1.5 text-xs font-bold rounded-xl border transition ${
+          fogOfWar
+            ? "bg-cyan-950/60 border-cyan-700 text-cyan-300"
+            : "bg-slate-800/40 border-slate-700/80 text-slate-500 hover:text-slate-300"
+        }`}
+      >
+        🌫️ Fog {fogOfWar ? "on" : "off"}
+      </button>
 
       <label class="flex items-center gap-1.5 text-slate-400 font-bold">
         Days

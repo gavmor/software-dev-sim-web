@@ -50,6 +50,7 @@ export function App() {
   const [days, setDaysState] = useState(100);
   const [stopRule, setStopRule] = useState<StopRule | null>(null);
   const [speed, setSpeed] = useState(10);
+  const [fogOfWar, setFogOfWar] = useState(true);
   const [runId, setRunId] = useState(0);
 
   const runnerRef = useRef<Runner | null>(null);
@@ -63,10 +64,10 @@ export function App() {
 
   // Instant mode: re-run the whole sim whenever inputs change.
   const instantResult = useMemo(
-    () => runSimulation(rules, { seed: SIM_SEED, days, stopRule }),
+    () => runSimulation(rules, { seed: SIM_SEED, days, stopRule, fogOfWar }),
     // runId lets the button force a re-run
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rules, days, stopRule, runId],
+    [rules, days, stopRule, fogOfWar, runId],
   );
 
   // A new strategy or run configuration resets any live run.
@@ -74,7 +75,7 @@ export function App() {
     runnerRef.current = null;
     setLiveRunning(false);
     setLiveTick(0);
-  }, [rules, days, stopRule, mode]);
+  }, [rules, days, stopRule, fogOfWar, mode]);
 
   // Live ticking.
   useEffect(() => {
@@ -94,7 +95,7 @@ export function App() {
   }, [liveRunning, speed]);
 
   const startLive = () => {
-    runnerRef.current = createRunner(rules, { seed: SIM_SEED, days, stopRule });
+    runnerRef.current = createRunner(rules, { seed: SIM_SEED, days, stopRule, fogOfWar });
     setLiveTick(0);
     setLiveRunning(true);
   };
@@ -210,6 +211,7 @@ export function App() {
         stopRule={stopRule}
         speed={speed}
         speeds={SPEEDS}
+        fogOfWar={fogOfWar}
         primaryLabel={primaryLabel}
         liveRunning={liveRunning}
         status={status}
@@ -217,6 +219,7 @@ export function App() {
         onDaysChange={setDays}
         onStopRuleChange={setStopRule}
         onSpeedChange={setSpeed}
+        onFogOfWarChange={setFogOfWar}
         onPrimary={onPrimary}
       />
 
@@ -231,7 +234,12 @@ export function App() {
         />
 
         <section class="lg:col-span-6 xl:col-span-6 flex flex-col bg-slate-950 overflow-y-auto">
-          <Scorecard result={result} title={scoreTitle} subtitle={scoreSubtitle} />
+          <Scorecard
+            result={result}
+            title={scoreTitle}
+            subtitle={scoreSubtitle}
+            fogOfWar={fogOfWar}
+          />
           <Dashboard result={result} rules={rules} />
         </section>
       </main>
