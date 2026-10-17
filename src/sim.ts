@@ -11,6 +11,8 @@ import {
 import {
   coveragePct,
   pickAction,
+  stopRuleFires,
+  describeStop,
   ACTION_META,
 } from "./strategy";
 import type {
@@ -18,8 +20,9 @@ import type {
   Rule,
   SimContext,
   SimResult,
+  StopRule,
 } from "./types";
-import { SIM_DAYS, SIM_SEED } from "./types";
+import { SIM_SEED } from "./types";
 
 function storyFor(
   events: StepEvent[],
@@ -61,13 +64,30 @@ function storyFor(
   return ACTION_META[action].label;
 }
 
+export interface RunOptions {
+  seed?: number;
+  days?: number;
+  stopRule?: StopRule | null;
+}
+
 /**
- * Run a full 100-day game driving the real engine with the given rule stack.
- * Deterministic for a fixed seed.
+ * An incremental simulation: call stepDay() to advance one day at a time.
+ * Powers both the instant full-run and the live ticking mode.
  */
-export function runSimulation(rules: Rule[], seed: number = SIM_SEED): SimResult {
-  const t0 = performance.now();
-  let game = createGame({ seed, days: SIM_DAYS });
+export interface Runner {
+  /** Advance one day; returns null when the run is already over. */
+  stepDay(): DayLogEntry | null;
+  readonly done: boolean;
+  readonly state: GameState;
+  readonly log: DayLogEntry[];
+  readonly actionCounts: Record<ActionId, number>;
+  readonly totalRevenueCents: number;
+  readonly stopReason: string | null;
+}
+
+export function createRunner(rules: Rule[], opts: RunOptions = {}): Runner {
+  const { seed = SIM_SEED, days = 100, stopRule = null } = opts;
+  let game = createGame({ seed, days });
   const ctx: SimContext = { featuresAtLastRelease: 0 };
   const log: DayLogEntry[] = [];
   const actionCounts: Record<ActionId, number> = {
@@ -78,15 +98,17 @@ export function runSimulation(rules: Rule[], seed: number = SIM_SEED): SimResult
   };
   let totalRevenueCents = 0;
   let totalFeaturesBuilt = 0;
+  let stopReason: string | null = null;
 
-  while (!game.done) {
+  function stepDay(): DayLogEntry | null {
+    if (game.done || stopReason !== null) return null;
     const { action, ruleIndex } = pickAction(rules, game, ctx);
     const { state: next, events } = step(game, action);
     totalRevenueCents += next.releasedValueCents;
     if (events.some((e) => e.type === "feature_added")) totalFeaturesBuilt += 1;
     if (action === "release") ctx.featuresAtLastRelease = next.features;
     actionCounts[action] += 1;
-    log.push({
+    const entry: DayLogEntry = {
       day: game.day,
       action,
       ruleNum: ruleIndex + 1,
@@ -95,16 +117,51 @@ export function runSimulation(rules: Rule[], seed: number = SIM_SEED): SimResult
       bugs: next.bugs,
       coveragePct: coveragePct(next),
       releasedValueCents: next.releasedValueCents,
-    });
+    };
+    log.push(entry);
     game = next;
+    if (stopRule !== null && stopRuleFires(stopRule, game, ctx)) {
+      stopReason = describeStop(stopRule, game.day);
+    }
+    return entry;
   }
 
   return {
-    log,
-    actionCounts,
-    finalState: game,
-    totalRevenueCents,
-    profitCents: profitCents(game),
+    stepDay,
+    get done() {
+      return game.done || stopReason !== null;
+    },
+    get state() {
+      return game;
+    },
+    get log() {
+      return log;
+    },
+    get actionCounts() {
+      return actionCounts;
+    },
+    get totalRevenueCents() {
+      return totalRevenueCents;
+    },
+    get stopReason() {
+      return stopReason;
+    },
+  };
+}
+
+/** Run the whole simulation synchronously. Deterministic for a fixed seed. */
+export function runSimulation(rules: Rule[], opts: RunOptions = {}): SimResult {
+  const t0 = performance.now();
+  const runner = createRunner(rules, opts);
+  while (!runner.done) runner.stepDay();
+  return {
+    log: runner.log,
+    actionCounts: runner.actionCounts,
+    finalState: runner.state,
+    totalRevenueCents: runner.totalRevenueCents,
+    profitCents: profitCents(runner.state),
+    stopReason: runner.stopReason,
+    daysSimulated: runner.log.length,
     durationMs: performance.now() - t0,
   };
 }

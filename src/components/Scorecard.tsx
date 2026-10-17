@@ -2,10 +2,12 @@ import { dollars } from "@gavmor/software-dev-sim";
 import { gradeFor } from "../sim";
 import { coveragePct } from "../strategy";
 import type { SimResult } from "../types";
-import { SIM_DAYS, SIM_SEED } from "../types";
+import { SIM_SEED } from "../types";
 
 interface Props {
   result: SimResult;
+  title: string;
+  subtitle: string | null;
 }
 
 function MetricCard({
@@ -33,7 +35,7 @@ function MetricCard({
   );
 }
 
-export function Scorecard({ result }: Props) {
+export function Scorecard({ result, title, subtitle }: Props) {
   const { finalState, totalRevenueCents, actionCounts, profitCents } = result;
   const profitDollars = profitCents / 100;
   const grade = gradeFor(profitDollars);
@@ -46,12 +48,15 @@ export function Scorecard({ result }: Props) {
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <span class="text-xs font-extrabold uppercase tracking-widest text-slate-400">
-            Scorecard ({SIM_DAYS} Days)
+            {title}
           </span>
           <span class={grade.className}>Grade: {grade.label}</span>
         </div>
         <span class="text-xs text-slate-400 font-mono">Seed: #{SIM_SEED}</span>
       </div>
+      {subtitle !== null && (
+        <div class="text-[11px] text-slate-500 font-mono mb-3 -mt-1">{subtitle}</div>
+      )}
 
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <MetricCard

@@ -1,5 +1,5 @@
 import * as R from "remeda";
-import type { GameState } from "@gavmor/software-dev-sim";
+import { profitCents, type GameState } from "@gavmor/software-dev-sim";
 import type {
   ActionId,
   Operator,
@@ -7,6 +7,7 @@ import type {
   Rule,
   SensorId,
   SimContext,
+  StopRule,
 } from "./types";
 
 export interface SensorMeta {
@@ -21,6 +22,7 @@ export const SENSOR_META: Record<SensorId, SensorMeta> = {
   coverage: { label: "Test Coverage", icon: "🛡️", unit: "%" },
   day: { label: "Day Number", icon: "📅", unit: "" },
   cruft: { label: "Code Mess", icon: "🧹", unit: "" },
+  profit: { label: "Profit", icon: "💵", unit: "$" },
 };
 
 export const OPERATORS: Operator[] = [">=", ">", "<=", "<", "=="];
@@ -90,6 +92,8 @@ export function readSensor(
       return state.day;
     case "cruft":
       return state.cruft;
+    case "profit":
+      return profitCents(state) / 100;
   }
 }
 
@@ -144,6 +148,25 @@ export function describeRule(rule: Rule, index: number): string {
   if (rule.isDefault) return `#${index + 1} Fallback → ${act}`;
   const sensor = SENSOR_META[rule.sensor ?? "day"].label;
   return `#${index + 1} If ${sensor} ${rule.operator} ${rule.value} → ${act}`;
+}
+
+/** Does the stop condition hold right now? */
+export function stopRuleFires(
+  rule: StopRule,
+  state: GameState,
+  ctx: SimContext,
+): boolean {
+  return compare(rule.operator, readSensor(rule.sensor, state, ctx), rule.value);
+}
+
+export function describeStop(rule: StopRule, day: number): string {
+  const meta = SENSOR_META[rule.sensor];
+  return `Stopped: ${meta.label} ${rule.operator} ${meta.unit}${rule.value} on day ${day}`;
+}
+
+export function describeStopShort(rule: StopRule): string {
+  const meta = SENSOR_META[rule.sensor];
+  return `${meta.label} ${rule.operator} ${meta.unit}${rule.value}`;
 }
 
 const mkRule = (

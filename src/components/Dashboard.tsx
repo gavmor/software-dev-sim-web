@@ -36,7 +36,7 @@ export function Dashboard({ result, rules }: Props) {
   return (
     <>
       <div class="flex border-b border-slate-800 text-xs font-bold bg-slate-900/60 px-4">
-        {tabBtn("log", "📖 Day-by-Day Story (100 Days)")}
+        {tabBtn("log", "📖 Day-by-Day Story")}
         {tabBtn("summary", "🔍 How the Engine Sees This")}
       </div>
 

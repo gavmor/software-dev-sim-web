@@ -7,7 +7,8 @@ export type SensorId =
   | "bugs"
   | "coverage"
   | "day"
-  | "cruft";
+  | "cruft"
+  | "profit";
 
 export type Operator = ">=" | ">" | "<=" | "<" | "==";
 
@@ -38,6 +39,15 @@ export interface DayLogEntry {
   releasedValueCents: number;
 }
 
+/** Halt the run early when this condition becomes true. */
+export interface StopRule {
+  sensor: SensorId;
+  operator: Operator;
+  value: number;
+}
+
+export type RunMode = "instant" | "live";
+
 export interface SimResult {
   log: DayLogEntry[];
   actionCounts: Record<ActionId, number>;
@@ -45,6 +55,9 @@ export interface SimResult {
   /** Total contract revenue earned across the run, in cents. */
   totalRevenueCents: number;
   profitCents: number;
+  /** Why the run ended early, if it did. */
+  stopReason: string | null;
+  daysSimulated: number;
   durationMs: number;
 }
 

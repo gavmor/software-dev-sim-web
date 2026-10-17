@@ -4,12 +4,11 @@ import * as R from "remeda";
 
 interface Props {
   onPreset: (key: PresetKey) => void;
-  onRun: () => void;
 }
 
 const PRESET_KEYS = R.keys(PRESET_LABELS);
 
-export function Header({ onPreset, onRun }: Props) {
+export function Header({ onPreset }: Props) {
   return (
     <header class="border-b border-slate-800/90 bg-slate-900/95 backdrop-blur-md px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-40">
       <div class="flex items-center gap-3">
@@ -46,20 +45,6 @@ export function Header({ onPreset, onRun }: Props) {
             </button>
           ))}
         </div>
-
-        <button
-          onClick={onRun}
-          class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-xl shadow-md shadow-emerald-500/20 transition active:scale-95 flex items-center gap-2"
-        >
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <span>Test 100 Days</span>
-        </button>
       </div>
     </header>
   );
