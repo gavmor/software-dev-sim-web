@@ -184,6 +184,48 @@ export function runSimulation(rules: Rule[], opts: RunOptions = {}): SimResult {
   };
 }
 
+/** Options for fundsOverTime — same knobs as the main run. */
+export interface FundsOptions {
+  seed?: number;
+  days?: number;
+  stopRule?: StopRule | null;
+  fogOfWar?: boolean;
+}
+
+/**
+ * Net worth (funds, in dollars) at the end of each simulated day, run
+ * through the same fog-segregated strategy path as the main sim. If a
+ * stop rule fires early the final value is repeated so series stay
+ * day-aligned for stacking.
+ */
+export function fundsOverTime(rules: Rule[], opts: FundsOptions = {}): number[] {
+  const { seed = SIM_SEED, days = 100, stopRule = null, fogOfWar = true } = opts;
+  let game = createGame({ seed, days });
+  const startFunds = game.cents / 100;
+  let knowledge = createKnowledge();
+  const ctx: SimContext = { featuresAtLastRelease: 0 };
+  const xray = !fogOfWar;
+  const funds: number[] = [];
+  while (!game.done) {
+    const view = playerView(game, knowledge, { xray });
+    const { action } = pickAction(rules, view, ctx);
+    const { state: next, events } = step(game, action);
+    knowledge = updateKnowledge(knowledge, events);
+    if (action === "release") ctx.featuresAtLastRelease = next.features;
+    game = next;
+    funds.push(game.cents / 100);
+    if (
+      stopRule !== null &&
+      stopRuleFires(stopRule, playerView(game, knowledge, { xray }), ctx)
+    ) {
+      break;
+    }
+  }
+  const last = funds.length > 0 ? funds[funds.length - 1] : startFunds;
+  while (funds.length < days) funds.push(last);
+  return funds;
+}
+
 /** Grade for the scorecard, based on final profit. */
 export function gradeFor(profitDollars: number): {
   label: string;

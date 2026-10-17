@@ -1,15 +1,18 @@
 import { useState } from "preact/hooks";
 import { ACTION_META, SENSOR_META } from "../strategy";
 import { recentLogFirst } from "../sim";
-import { EffortStream } from "./EffortStream";
-import type { Rule, SimResult } from "../types";
+import { NetWorthRace } from "./NetWorthRace";
+import type { Rule, SimResult, StopRule } from "../types";
 
 interface Props {
   result: SimResult;
   rules: Rule[];
+  days: number;
+  fogOfWar: boolean;
+  stopRule: StopRule | null;
 }
 
-type Tab = "log" | "summary" | "stream";
+type Tab = "log" | "summary" | "race";
 
 const TIPS = [
   "Releasing features earns points, but bugs reduce earnings.",
@@ -18,7 +21,7 @@ const TIPS = [
   "Don't forget a release rule near day 99 before time runs out!",
 ];
 
-export function Dashboard({ result, rules }: Props) {
+export function Dashboard({ result, rules, days, fogOfWar, stopRule }: Props) {
   const [tab, setTab] = useState<Tab>("log");
 
   const tabBtn = (t: Tab, label: string) => (
@@ -39,11 +42,16 @@ export function Dashboard({ result, rules }: Props) {
       <div class="flex border-b border-slate-800 text-xs font-bold bg-slate-900/60 px-4">
         {tabBtn("log", "📖 Day-by-Day Story")}
         {tabBtn("summary", "🔍 How the Engine Sees This")}
-        {tabBtn("stream", "📊 Effort Stream")}
+        {tabBtn("race", "💰 Net Worth Race")}
       </div>
 
-      {tab === "stream" ? (
-        <EffortStream log={result.log} />
+      {tab === "race" ? (
+        <NetWorthRace
+          rules={rules}
+          days={days}
+          fogOfWar={fogOfWar}
+          stopRule={stopRule}
+        />
       ) : tab === "log" ? (
         <div class="flex-1 p-4 overflow-y-auto">
           <div class="space-y-2">

@@ -33,6 +33,14 @@ pnpm build    # tsc --noEmit && vite build
 pnpm preview  # serve the production build locally
 ```
 
+## Net Worth Race
+
+The 💰 tab pits your current rules against N paired instances of each
+preset (default 12): instance *n* of every preset shares a seed, your
+company runs the lab seed, and each layer of the stacked streamgraph is one
+company's net worth over time. The four stack offsets (zero / normalize /
+center / wiggle) are the Observable Plot demo applied to the race.
+
 ## Fog of war
 
 Like the original game, bug counts and test quality are hidden until

@@ -240,7 +240,13 @@ export function App() {
             subtitle={scoreSubtitle}
             fogOfWar={fogOfWar}
           />
-          <Dashboard result={result} rules={rules} />
+          <Dashboard
+            result={result}
+            rules={rules}
+            days={days}
+            fogOfWar={fogOfWar}
+            stopRule={stopRule}
+          />
         </section>
       </main>
 
