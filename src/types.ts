@@ -22,9 +22,12 @@ export interface Rule {
   desc: string;
 }
 
-/** Per-run memory for stateful sensors. */
+/** Per-run memory for stateful sensors — i.e. what the strategy is allowed to know. */
 export interface SimContext {
   featuresAtLastRelease: number;
+  /** Bug count as last reported at a release; stale between releases under fog. */
+  knownBugs: number;
+  fogOfWar: boolean;
 }
 
 export interface DayLogEntry {

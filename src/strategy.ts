@@ -85,7 +85,8 @@ export function readSensor(
     case "net_new_features":
       return Math.max(0, state.features - ctx.featuresAtLastRelease);
     case "bugs":
-      return state.bugs;
+      // Under fog of war the strategy only knows what the last release reported.
+      return ctx.fogOfWar ? ctx.knownBugs : state.bugs;
     case "coverage":
       return coveragePct(state);
     case "day":

@@ -96,7 +96,7 @@ export interface Runner {
 export function createRunner(rules: Rule[], opts: RunOptions = {}): Runner {
   const { seed = SIM_SEED, days = 100, stopRule = null, fogOfWar = false } = opts;
   let game = createGame({ seed, days });
-  const ctx: SimContext = { featuresAtLastRelease: 0 };
+  const ctx: SimContext = { featuresAtLastRelease: 0, knownBugs: 0, fogOfWar };
   const log: DayLogEntry[] = [];
   const actionCounts: Record<ActionId, number> = {
     feature: 0,
@@ -114,7 +114,13 @@ export function createRunner(rules: Rule[], opts: RunOptions = {}): Runner {
     const { state: next, events } = step(game, action);
     totalRevenueCents += next.releasedValueCents;
     if (events.some((e) => e.type === "feature_added")) totalFeaturesBuilt += 1;
-    if (action === "release") ctx.featuresAtLastRelease = next.features;
+    if (action === "release") {
+      ctx.featuresAtLastRelease = next.features;
+      // A release is the only moment the strategy learns the bug count.
+      const reported = events.find((e) => e.type === "bugs_reported");
+      ctx.knownBugs =
+        reported !== undefined && reported.type === "bugs_reported" ? reported.count : 0;
+    }
     actionCounts[action] += 1;
     const entry: DayLogEntry = {
       day: game.day,
